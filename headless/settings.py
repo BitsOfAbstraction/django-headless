@@ -23,6 +23,9 @@ DEFAULTS = {
     "AUTH_SECRET_KEY_HEADER": "X-Secret-Key",
     "DEFAULT_SERIALIZER_CLASS": "rest_framework.serializers.ModelSerializer",
     "FILTER_EXCLUSION_SYMBOL": "~",
+    "FILTER_TRUE_VALUES": ["true", "1", "on"],
+    "FILTER_FALSE_VALUES": ["false", "0", "off"],
+    "FILTER_NULL_VALUES": ["null", "none", "empty"],
     "NON_FILTER_FIELDS": [
         "search",
         "limit",

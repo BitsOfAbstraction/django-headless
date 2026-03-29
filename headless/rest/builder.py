@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Dict, Any
 
 from django.db.models import Model
 from django.urls import path
@@ -20,16 +20,30 @@ class RestBuilder:
     def __init__(self):
         self._models = headless_registry.get_models()
         self._serializer_classes = {}
+        self._viewset_classes = {}
 
-    def build(self):
+    def build(self) -> None:
         """
         Builds the REST API by creating view sets and serializers and registering them
         to the router.
-        :return:
+
+        Iterates through all registered models, creates appropriate viewsets and serializers,
+        and registers them with the router based on whether they are singleton models
+        or regular collection models.
         """
         log(":building_construction:", "Setting up REST routes")
 
         for model_config in self._models:
+            # Validate model config has required fields
+            if not all(
+                key in model_config for key in ["model", "singleton", "search_fields"]
+            ):
+                log(
+                    ":warning:",
+                    f"Invalid model config for {model_config.get('model', 'Unknown')}",
+                )
+                continue
+
             model_class = model_config["model"]
             singleton = model_config["singleton"]
             view_set = self.get_view_set(model_config)
@@ -51,11 +65,20 @@ class RestBuilder:
             else:
                 rest_router.register(base_path, view_set)
 
-    def get_serializer(self, model_class: Type[Model]):
+    def get_serializer(self, model_class: Type[Model]) -> Type[Any]:
+        """
+        Get or create a serializer class for the given model.
+
+        Args:
+            model_class: The Django model class to create serializer for
+
+        Returns:
+            A serializer class for the model
+        """
         model_name = model_class._meta.label
 
         # Return serializer class from cache if it exists
-        if self._serializer_classes.get(model_name, None):
+        if model_name in self._serializer_classes:
             return self._serializer_classes[model_name]
 
         class Serializer(headless_settings.DEFAULT_SERIALIZER_CLASS):
@@ -67,8 +90,23 @@ class RestBuilder:
 
         return Serializer
 
-    def get_view_set(self, model_config: ModelConfig):
+    def get_view_set(self, model_config: ModelConfig) -> Type[Any]:
+        """
+        Get or create a viewset class for the given model configuration.
+
+        Args:
+            model_config: Configuration dictionary containing model and settings
+
+        Returns:
+            A viewset class configured for the model
+        """
         model_class = model_config["model"]
+        model_name = model_class._meta.label
+
+        # Return cached viewset if it exists
+        if model_name in self._viewset_classes:
+            return self._viewset_classes[model_name]
+
         singleton = model_config["singleton"]
         serializer = self.get_serializer(model_class)
 
@@ -88,4 +126,5 @@ class RestBuilder:
                 serializer_class = serializer
                 search_fields = model_config["search_fields"]
 
+        self._viewset_classes[model_name] = ViewSet
         return ViewSet

@@ -18,13 +18,13 @@ class LookupFilter(BaseFilterBackend):
 
     MULTI_VALUE_LOOKUPS = ["in", "range"]
 
-    TRUE_VALUES = ["true", "on", "1"]
+    TRUE_VALUES = headless_settings.FILTER_TRUE_VALUES
 
-    FALSE_VALUES = ["false", "off", "0"]
+    FALSE_VALUES = headless_settings.FILTER_FALSE_VALUES
 
     BOOLEANS = TRUE_VALUES + FALSE_VALUES
 
-    NONE_VALUES = ["null", "none", "empty"]
+    NULL_VALUES = headless_settings.FILTER_NULL_VALUES
 
     EXCLUDE_SYMBOL = headless_settings.FILTER_EXCLUSION_SYMBOL
 
@@ -35,17 +35,17 @@ class LookupFilter(BaseFilterBackend):
         Build the queryset based on the query params and the view's model.
         Only apply filters in list endpoints.
         """
-        if getattr(view, "action", None) == "list":
-            try:
-                filter_kwargs, exclude_kwargs = self.get_filter_kwargs(
-                    model_class=view.queryset.model,
-                    query_params=request.query_params,
-                )
-            except Exception as e:
-                raise ParseError(detail="Invalid filter parameters")
-            return queryset.filter(**filter_kwargs).exclude(**exclude_kwargs).distinct()
+        if getattr(view, "action", None) != "list":
+            return queryset
 
-        return queryset
+        try:
+            filter_kwargs, exclude_kwargs = self.get_filter_kwargs(
+                model_class=view.queryset.model,
+                query_params=request.query_params,
+            )
+            return queryset.filter(**filter_kwargs).exclude(**exclude_kwargs).distinct()
+        except Exception as e:
+            raise ParseError(detail="Invalid filter parameters")
 
     def get_filter_kwargs(self, model_class, query_params):
         filter_kwargs = {}
@@ -129,12 +129,12 @@ class LookupFilter(BaseFilterBackend):
                 return True
             if value in self.FALSE_VALUES:
                 return False
-            if getattr(field, "null", False) and value in self.NONE_VALUES:
+            if getattr(field, "null", False) and value in self.NULL_VALUES:
                 return None
             else:
                 if getattr(field, "null", False):
                     raise ParseError(
-                        detail=f"Nullable boolean fields expect a boolean or none lookup value ({", ".join(self.BOOLEANS + self.NONE_VALUES)})."
+                        detail=f"Nullable boolean fields expect a boolean or none lookup value ({", ".join(self.BOOLEANS + self.NULL_VALUES)})."
                     )
 
                 raise ParseError(
