@@ -62,6 +62,7 @@ class RegistryTests(SimpleTestCase):
         # Create a fake model class with minimal _meta interface
         class _Meta:
             label_lower = "app.model"
+            fields = []
 
         class FakeModel:
             _meta = _Meta()
