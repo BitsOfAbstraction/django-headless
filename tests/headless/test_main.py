@@ -1,10 +1,11 @@
-from django.test import SimpleTestCase
 import sys
 from unittest.mock import patch
 
-from .utils import is_jsonable, flatten, is_runserver
-from .settings import headless_settings
-from .registry import HeadlessRegistry
+from django.test import SimpleTestCase
+
+from headless.registry import HeadlessRegistry
+from headless.settings import headless_settings
+from headless.utils import is_jsonable, flatten, is_runserver
 
 
 class UtilsTests(SimpleTestCase):

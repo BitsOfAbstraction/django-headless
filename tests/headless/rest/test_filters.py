@@ -1,10 +1,11 @@
-from django.test import TestCase
-from django.db import models
-from rest_framework.exceptions import ParseError
-from rest_framework.request import QueryDict
 from unittest.mock import Mock
 
-from .filters import LookupFilter
+from django.db import models
+from django.test import TestCase
+from rest_framework.exceptions import ParseError
+from rest_framework.request import QueryDict
+
+from headless.rest.filters import LookupFilter
 
 
 class TestModel(models.Model):

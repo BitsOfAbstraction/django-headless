@@ -3,12 +3,12 @@ Tests for FlexibleSerializer
 """
 
 import pytest
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from rest_framework import serializers
 
-from ..registry import headless_registry
-from .serializers import FlexibleSerializer
-from django.core.exceptions import ImproperlyConfigured
+from headless.registry import headless_registry
+from headless.rest.serializers import FlexibleSerializer
 
 
 class TestFlexibleSerializer:
