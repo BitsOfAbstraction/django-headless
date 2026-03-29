@@ -16,6 +16,10 @@ def expose(singleton=False, search_fields=None):
     """
     Decorator to register a Django model to the headless registry.
 
+    Args:
+        singleton: If True, the model will be treated as a singleton (single instance).
+        search_fields: List of field names to enable search functionality on.
+
     Usage:
         @expose()
         class MyModel(models.Model):
@@ -31,6 +35,18 @@ def expose(singleton=False, search_fields=None):
 
 
 def expose_model(model_class: Type[models.Model], singleton=False, search_fields=None):
+    """
+    Register a Django model to the headless registry.
+
+    Args:
+        model_class: The Django model class to expose via the REST API.
+        singleton: If True, the model will be treated as a singleton (single instance).
+        search_fields: List of field names to enable search functionality on.
+
+    Usage:
+        expose_model(MyModel, singleton=False, search_fields=['name', 'description'])
+    """
+
     headless_registry.register(
         model_class, singleton=singleton, search_fields=search_fields
     )

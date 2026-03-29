@@ -9,7 +9,7 @@ With Django Headless you quickly create a REST API for your models, making it ea
 
 ## ✨ Features
 
-- **🎯 Easy configuration**: Add `@exposure` decorator to any model and get instant REST endpoints
+- **🎯 Easy configuration**: Add `@expose` decorator to any model and get instant REST endpoints
 - **🤝 Plays nice**: Seamlessly integrates with existing Django applications
 - **💈 Supports singletons**: Special handling for singleton models (settings, configurations, etc.)
 - **🔍 Flexible filtering**: Optional filtering backend based on Django ORM lookups
@@ -184,6 +184,9 @@ HEADLESS =  {
     "AUTH_SECRET_KEY": None,
     "AUTH_SECRET_KEY_HEADER": "X-Secret-Key",
     "FILTER_EXCLUSION_SYMBOL": "~",
+    "FILTER_TRUE_VALUES": ["true", "1", "on"],
+    "FILTER_FALSE_VALUES": ["false", "0", "off"],
+    "FILTER_NULL_VALUES": ["null", "none", "empty"],
     "NON_FILTER_FIELDS": [
         "search",
         "limit",
@@ -199,7 +202,7 @@ HEADLESS =  {
 
 ## 🛠️ Requirements
 
-- Python 3.10+
+- Python 3.12+
 - Django 5.0+
 - Django REST Framework 3.16+
 
@@ -228,10 +231,10 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements-dev.txt
+poetry install
 
 # Run tests
-python manage.py test
+poetry run test
 
 # Run example project
 cd example_project

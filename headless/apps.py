@@ -1,7 +1,14 @@
 from django.apps import AppConfig
 
 from . import VERSION
-from .utils import is_runserver, log
+from .utils import (
+    is_runserver,
+    log,
+    is_auth_configured,
+    is_secret_key_auth_used,
+    is_secret_key_auth_configured,
+    configured_auth_classes,
+)
 
 
 class DjangoHeadlessConfig(AppConfig):
@@ -9,18 +16,45 @@ class DjangoHeadlessConfig(AppConfig):
     label = "headless"
 
     def ready(self):
+        from headless.settings import headless_settings
+        from django.conf import settings
         from .registry import headless_registry
 
-        if is_runserver():
-            log("\n")
-            log("----------------------------------------")
-            log("Django Headless")
-            log(f"Version {VERSION}")
-            log("----------------------------------------")
+        if not is_runserver():
+            return
+
+        log("")
+        log("[bold magenta]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold magenta]")
+        log("[bold cyan]Django Headless[/bold cyan]")
+        log(f"[bold]Version {VERSION}[/bold]")
+        log("[bold magenta]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold magenta]")
+        log(
+            f":gift:  Found [bold green]{len(headless_registry)}[/bold green] exposed models:"
+        )
+        for model_config in headless_registry.get_models():
+            model = model_config["model"]
             log(
-                ":white_check_mark:",
-                f"[green]Found {len(headless_registry)} exposed models:[/green]",
+                f"  [cyan]•[/cyan] {model._meta.verbose_name} ([dim]{model._meta.label_lower}[/dim])"
             )
-            for model_config in headless_registry.get_models():
-                model = model_config["model"]
-                print(f"   - {model._meta.verbose_name} ({model._meta.label_lower})")
+
+        # Authentication status logging
+        log("")
+
+        if is_auth_configured():
+            log(":lock:  [green]An authentication class is configured.[/green]")
+            if is_secret_key_auth_used():
+                log(
+                    f"  [cyan]•[/cyan] Using secret key authentication. ([dim]Header: {headless_settings.AUTH_SECRET_KEY_HEADER}[/dim])"
+                )
+
+                if not is_secret_key_auth_configured():
+                    log(
+                        "  [yellow]• HEADLESS.AUTH_SECRET_KEY is not configured![/yellow]"
+                    )
+            else:
+                log(f"  [cyan]•[/cyan] Using {', '.join(configured_auth_classes())}")
+
+        else:
+            log(
+                ":lock:  [red]No authentication class configured! Using Django Headless to create public endpoints can expose unwanted data.[/red]"
+            )

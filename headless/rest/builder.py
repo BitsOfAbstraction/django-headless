@@ -31,7 +31,7 @@ class RestBuilder:
         and registers them with the router based on whether they are singleton models
         or regular collection models.
         """
-        log(":building_construction:", "Setting up REST routes")
+        log("\n:building_construction:  Setting up [bold]REST[/bold] routes")
 
         for model_config in self._models:
             # Validate model config has required fields
@@ -39,8 +39,7 @@ class RestBuilder:
                 key in model_config for key in ["model", "singleton", "search_fields"]
             ):
                 log(
-                    ":warning:",
-                    f"Invalid model config for {model_config.get('model', 'Unknown')}",
+                    f":warning:  Invalid model config for {model_config.get('model', 'Unknown')}",
                 )
                 continue
 
@@ -64,6 +63,11 @@ class RestBuilder:
                 )
             else:
                 rest_router.register(base_path, view_set)
+
+        log(
+            f"   [cyan]•[/cyan] {len(rest_router.urls + singleton_urls)} routes registered"
+        )
+        log(f"     [dim]{len(singleton_urls)} singleton routes[/dim]")
 
     def get_serializer(self, model_class: Type[Model]) -> Type[Any]:
         """

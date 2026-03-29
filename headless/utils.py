@@ -1,5 +1,6 @@
 import json
 import sys
+from typing import List
 
 from rich.console import Console
 
@@ -51,3 +52,61 @@ def is_runserver():
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
+
+
+def configured_auth_classes() -> List[str] | None:
+    """Return the authentication class configured in REST_FRAMEWORK"""
+    from django.conf import settings
+
+    if not hasattr(settings, "REST_FRAMEWORK"):
+        return None
+
+    auth_classes = settings.REST_FRAMEWORK.get("DEFAULT_AUTHENTICATION_CLASSES", [])
+
+    if not auth_classes:
+        return None
+
+    auth_class_paths = []
+
+    for auth_class in auth_classes:
+        try:
+            if hasattr(auth_class, "__module__") and hasattr(auth_class, "__name__"):
+                full_path = auth_class.__module__ + "." + auth_class.__name__
+                auth_class_paths.append(full_path)
+            else:
+                auth_class_paths.append(auth_class)
+        except:
+            pass
+
+    return auth_classes
+
+
+def is_auth_configured() -> bool:
+    """Check if at least one authentication class is configured in REST_FRAMEWORK"""
+
+    auth_classes = configured_auth_classes()
+
+    return bool(auth_classes)
+
+
+def is_secret_key_auth_configured() -> bool:
+    """Check if SecretKeyAuthentication is configured"""
+    from headless.settings import headless_settings
+
+    return bool(headless_settings.AUTH_SECRET_KEY)
+
+
+def is_secret_key_auth_used():
+    """Check if SecretKeyAuthentication is in REST_FRAMEWORK.DEFAULT_AUTHENTICATION_CLASSES"""
+    from headless.rest.authentication import SecretKeyAuthentication
+
+    auth_classes = configured_auth_classes()
+    secret_key_class_path = (
+        SecretKeyAuthentication.__module__ + "." + SecretKeyAuthentication.__name__
+    )
+
+    for auth_class in auth_classes:
+        if auth_class == secret_key_class_path:
+            return True
+
+    return False
