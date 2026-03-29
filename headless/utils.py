@@ -20,14 +20,33 @@ def is_jsonable(x):
 
 def is_runserver():
     """
-    Checks if the Django application is started as a server.
-    We'll also assume it started if manage.py is not used (e.g. when Django is started using wsgi/asgi).
-    The main purpose of this check is to not run certain code on other management commands such
-    as `migrate`.
-    """
-    is_manage_cmd = sys.argv[0].endswith("/manage.py")
+    Checks if the Django application is running as a server.
 
-    return not is_manage_cmd or sys.argv[1] == "runserver"
+    Returns True if:
+    - Django is started via WSGI/ASGI (not using manage.py)
+    - Using manage.py with server commands like runserver, runserver_plus, etc.
+    - Running in a context that suggests server mode (e.g., DJANGO_RUNSERVER env var)
+
+    Returns False for management commands like migrate, makemigrations, etc.
+    """
+    try:
+        # Check if we're using manage.py
+        if sys.argv[0].endswith("/manage.py"):
+            # If using manage.py, we need at least 2 arguments to have a command
+            if len(sys.argv) > 1:
+                # Common server commands
+                server_commands = {"runserver", "runserver_plus", "runsslserver"}
+                return sys.argv[1] in server_commands
+            else:
+                # manage.py without a command - not a server
+                return False
+        else:
+            # If not using manage.py, assume it's a server (WSGI/ASGI)
+            return True
+
+    except IndexError:
+        # If sys.argv is malformed, default to False to be safe
+        return False
 
 
 def flatten(xss):

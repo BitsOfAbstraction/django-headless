@@ -1,6 +1,8 @@
 from django.test import SimpleTestCase
+import sys
+from unittest.mock import patch
 
-from .utils import is_jsonable, flatten
+from .utils import is_jsonable, flatten, is_runserver
 from .settings import headless_settings
 from .registry import HeadlessRegistry
 
@@ -13,6 +15,30 @@ class UtilsTests(SimpleTestCase):
 
     def test_flatten(self):
         self.assertEqual(flatten([[1, 2], [3], [], [4, 5]]), [1, 2, 3, 4, 5])
+
+    def test_is_runserver_with_runserver(self):
+        with patch.object(sys, "argv", ["/path/manage.py", "runserver"]):
+            self.assertTrue(is_runserver())
+
+    def test_is_runserver_with_runserver_plus(self):
+        with patch.object(sys, "argv", ["/path/manage.py", "runserver_plus"]):
+            self.assertTrue(is_runserver())
+
+    def test_is_runserver_with_migrate(self):
+        with patch.object(sys, "argv", ["/path/manage.py", "migrate"]):
+            self.assertFalse(is_runserver())
+
+    def test_is_runserver_with_wsgi(self):
+        with patch.object(sys, "argv", ["/path/wsgi.py"]):
+            self.assertTrue(is_runserver())
+
+    def test_is_runserver_with_empty_args(self):
+        with patch.object(sys, "argv", []):
+            self.assertFalse(is_runserver())
+
+    def test_is_runserver_with_insufficient_args(self):
+        with patch.object(sys, "argv", ["/path/manage.py"]):
+            self.assertFalse(is_runserver())
 
 
 class SettingsTests(SimpleTestCase):

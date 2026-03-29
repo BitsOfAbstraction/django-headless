@@ -56,9 +56,6 @@ class FlexibleSerializer(FlexFieldsModelSerializer):
 
             # Do not expand if model is not in registry
             if not headless_registry.get_model(related_model._meta.label):
-                log(
-                    f"Skipping expandable field {field.name} of {model._meta.label} because {related_model._meta.label} is not exposed. This might be what you want!",
-                )
                 continue
 
             class Serializer(headless_settings.DEFAULT_SERIALIZER_CLASS):

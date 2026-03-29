@@ -1,5 +1,6 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
+from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import BaseFilterBackend
@@ -17,6 +18,14 @@ class LookupFilter(BaseFilterBackend):
 
     MULTI_VALUE_LOOKUPS = ["in", "range"]
 
+    TRUE_VALUES = ["true", "on", "1"]
+
+    FALSE_VALUES = ["false", "off", "0"]
+
+    BOOLEANS = TRUE_VALUES + FALSE_VALUES
+
+    NONE_VALUES = ["null", "none", "empty"]
+
     EXCLUDE_SYMBOL = headless_settings.FILTER_EXCLUSION_SYMBOL
 
     NON_FILTER_FIELDS = headless_settings.NON_FILTER_FIELDS
@@ -33,7 +42,6 @@ class LookupFilter(BaseFilterBackend):
                     query_params=request.query_params,
                 )
             except Exception as e:
-                print(e)
                 raise ParseError(detail="Invalid filter parameters")
             return queryset.filter(**filter_kwargs).exclude(**exclude_kwargs).distinct()
 
@@ -53,9 +61,15 @@ class LookupFilter(BaseFilterBackend):
             value = flatten([param.split(",") for param in value])
             is_exclude = key.startswith(self.EXCLUDE_SYMBOL)
             # The first part of a key is considered the field name
+            # Strip the exclusion symbol for field lookup
             field_name = key.split("__")[0]
+            if is_exclude:
+                field_name = field_name[len(self.EXCLUDE_SYMBOL) :]
             # Get the model field.
-            field = model_class._meta.get_field(field_name)
+            try:
+                field = model_class._meta.get_field(field_name)
+            except FieldDoesNotExist:
+                raise ParseError(detail=f"Field '{field_name}' does not exist")
             # Get the allowed lookups for this field.
             lookups = field_lookups.get(field_name, [])
             try:
@@ -75,12 +89,22 @@ class LookupFilter(BaseFilterBackend):
             if is_multi:
                 casted_value = [self.cast_field_value(v, field) for v in value]
             elif lookup == "isnull":
-                casted_value = value[0] in ["1", "true", "on"]
+                if not value or value not in self.BOOLEANS:
+                    raise ParseError(
+                        detail=f"The isnull lookup can only be used with a boolean value ({", ".join(self.BOOLEANS)})."
+                    )
+                casted_value = value[0] in self.TRUE_VALUES
             else:
                 casted_value = self.cast_field_value(value[0], field)
 
             if is_exclude:
-                exclude_kwargs[key] = casted_value
+                # Strip the exclusion symbol from the key for Django's exclude method
+                exclude_key = (
+                    key[len(self.EXCLUDE_SYMBOL) :]
+                    if key.startswith(self.EXCLUDE_SYMBOL)
+                    else key
+                )
+                exclude_kwargs[exclude_key] = casted_value
             else:
                 filter_kwargs[key] = casted_value
 
@@ -101,21 +125,38 @@ class LookupFilter(BaseFilterBackend):
         value = value.strip().lower()
 
         if isinstance(field, models.BooleanField):
-            if value in ["1", "true", "on"]:
+            if value in self.TRUE_VALUES:
                 return True
-            if value in ["0", "false", "off"]:
+            if value in self.FALSE_VALUES:
                 return False
-        if isinstance(field, models.NullBooleanField):
-            if value in ["null", "none", "empty"]:
+            if getattr(field, "null", False) and value in self.NONE_VALUES:
                 return None
+            else:
+                if getattr(field, "null", False):
+                    raise ParseError(
+                        detail=f"Nullable boolean fields expect a boolean or none lookup value ({", ".join(self.BOOLEANS + self.NONE_VALUES)})."
+                    )
+
+                raise ParseError(
+                    detail=f"Boolean fields expect a boolean lookup value ({", ".join(self.BOOLEANS)})."
+                )
 
         if isinstance(field, models.IntegerField):
-            return int(value)
+            try:
+                return int(value)
+            except ValueError:
+                raise ParseError(detail=f"Invalid integer value: {value}")
 
         if isinstance(field, models.DecimalField):
-            return Decimal(value)
+            try:
+                return Decimal(value)
+            except (ValueError, InvalidOperation):
+                raise ParseError(detail=f"Invalid decimal value: {value}")
 
         if isinstance(field, models.FloatField):
-            return float(value)
+            try:
+                return float(value)
+            except ValueError:
+                raise ParseError(detail=f"Invalid float value: {value}")
 
         return value
