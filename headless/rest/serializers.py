@@ -35,9 +35,7 @@ class FlexibleSerializer(FlexFieldsModelSerializer):
         return fields
 
     def build_standard_field(self, field_name, model_field):
-        field_class, field_kwargs = super().build_standard_field(
-            field_name, model_field
-        )
+        field_class, field_kwargs = super().build_standard_field(field_name, model_field)
 
         return field_class, field_kwargs
 
@@ -53,21 +51,15 @@ class FlexibleSerializer(FlexFieldsModelSerializer):
 
         # Validate that Meta class exists and has model attribute
         if not hasattr(self, "Meta"):
-            raise ImproperlyConfigured(
-                f"{self.__class__.__name__} is missing Meta class"
-            )
-        
+            raise ImproperlyConfigured(f"{self.__class__.__name__} is missing Meta class")
+
         if not hasattr(self.Meta, "model"):
-            raise ImproperlyConfigured(
-                f"{self.__class__.__name__}.Meta is missing model attribute"
-            )
-        
+            raise ImproperlyConfigured(f"{self.__class__.__name__}.Meta is missing model attribute")
+
         model: Optional[Model] = self.Meta.model
 
         if not model:
-            raise ImproperlyConfigured(
-                f"{self.__class__.__name__}.Meta.model is None or invalid"
-            )
+            raise ImproperlyConfigured(f"{self.__class__.__name__}.Meta.model is None or invalid")
 
         # Validate that model has _meta attribute
         if not hasattr(model, "_meta"):
@@ -84,10 +76,10 @@ class FlexibleSerializer(FlexFieldsModelSerializer):
             for field in model._meta.get_fields():
                 if not field.is_relation:
                     continue
-                    
+
                 try:
                     related_model = field.related_model
-                    
+
                     # Skip if related_model is None (can happen with some field types)
                     if related_model is None:
                         continue
@@ -101,14 +93,15 @@ class FlexibleSerializer(FlexFieldsModelSerializer):
                     # Create serializer class dynamically
                     # Use type() instead of class definition for better performance
                     Serializer = type(
-                        f'{related_model.__name__}Serializer',
+                        f"{related_model.__name__}Serializer",
                         (headless_settings.DEFAULT_SERIALIZER_CLASS,),
                         {
-                            'Meta': type('Meta', (), {
-                                'model': related_model,
-                                'fields': '__all__'
-                            })
-                        }
+                            "Meta": type(
+                                "Meta",
+                                (),
+                                {"model": related_model, "fields": "__all__"},
+                            )
+                        },
                     )
 
                     is_many = field.many_to_many or field.one_to_many
@@ -117,8 +110,8 @@ class FlexibleSerializer(FlexFieldsModelSerializer):
                     if is_many:
                         # Use direct attribute access with fallbacks for better performance
                         # ManyToMany fields might not have related_name or accessor_name
-                        related_name = getattr(field, 'related_name', None)
-                        accessor_name = getattr(field, 'accessor_name', None)
+                        related_name = getattr(field, "related_name", None)
+                        accessor_name = getattr(field, "accessor_name", None)
                         name = related_name or accessor_name or field.name
 
                     expandable_fields[name] = (
@@ -134,9 +127,7 @@ class FlexibleSerializer(FlexFieldsModelSerializer):
                     continue
 
         except AttributeError as e:
-            raise ImproperlyConfigured(
-                f"Failed to get fields from model {model.__class__.__name__}: {str(e)}"
-            ) from e
+            raise ImproperlyConfigured(f"Failed to get fields from model {model.__class__.__name__}: {str(e)}") from e
 
         # Cache the result to avoid recomputation
         self._expandable_fields_cache = expandable_fields

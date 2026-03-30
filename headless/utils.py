@@ -1,8 +1,8 @@
 import json
 import sys
 from typing import List, Optional
-from urllib.request import urlopen
 from urllib.error import URLError
+from urllib.request import urlopen
 
 from rich.console import Console
 
@@ -103,9 +103,7 @@ def is_secret_key_auth_used():
     from headless.rest.authentication import SecretKeyAuthentication
 
     auth_classes = configured_auth_classes()
-    secret_key_class_path = (
-        SecretKeyAuthentication.__module__ + "." + SecretKeyAuthentication.__name__
-    )
+    secret_key_class_path = SecretKeyAuthentication.__module__ + "." + SecretKeyAuthentication.__name__
 
     for auth_class in auth_classes:
         if auth_class == secret_key_class_path:
@@ -118,18 +116,18 @@ def normalize_version(version: str) -> str:
     """Normalize version strings for comparison (e.g., '1.0.0b6' -> '1.0.0-beta.6')"""
     if not version:
         return version
-    
+
     # Handle prerelease versions: b6 -> beta.6, a6 -> alpha.6, rc6 -> rc.6
     # Use regex to avoid overlapping replacements
     import re
-    
+
     # Replace bX with -beta.X (but not if already in beta format)
-    version = re.sub(r'\b(\d+\.\d+\.\d+)b(\d+)', r'\1-beta.\2', version)
+    version = re.sub(r"\b(\d+\.\d+\.\d+)b(\d+)", r"\1-beta.\2", version)
     # Replace aX with -alpha.X
-    version = re.sub(r'\b(\d+\.\d+\.\d+)a(\d+)', r'\1-alpha.\2', version)
+    version = re.sub(r"\b(\d+\.\d+\.\d+)a(\d+)", r"\1-alpha.\2", version)
     # Replace rcX with -rc.X
-    version = re.sub(r'\b(\d+\.\d+\.\d+)rc(\d+)', r'\1-rc.\2', version)
-    
+    version = re.sub(r"\b(\d+\.\d+\.\d+)rc(\d+)", r"\1-rc.\2", version)
+
     return version
 
 
@@ -137,9 +135,7 @@ def get_latest_version() -> Optional[str]:
     """Fetch the latest version of django-headless from PyPI"""
     try:
         # Fetch the PyPI JSON API for django-headless
-        with urlopen(
-            "https://pypi.org/pypi/django-headless/json", timeout=5
-        ) as response:
+        with urlopen("https://pypi.org/pypi/django-headless/json", timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
             return data.get("info", {}).get("version")
     except (URLError, json.JSONDecodeError, KeyError):

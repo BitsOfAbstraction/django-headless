@@ -1,12 +1,11 @@
-from decimal import Decimal, InvalidOperation
-
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import BaseFilterBackend
 
-from ..settings import headless_settings
-from ..utils import flatten
+from headless.settings import headless_settings
+from headless.utils import flatten
+from .casting import cast_field_value
+from .lookups import get_field_lookups
 
 
 class LookupFilter(BaseFilterBackend):
@@ -51,7 +50,7 @@ class LookupFilter(BaseFilterBackend):
         filter_kwargs = {}
         exclude_kwargs = {}
 
-        field_lookups = self.get_field_lookups(model_class=model_class)
+        field_lookups = get_field_lookups(model_class=model_class)
 
         for key, value in query_params.lists():
             if key in self.NON_FILTER_FIELDS:
@@ -87,76 +86,28 @@ class LookupFilter(BaseFilterBackend):
             # Depending on the field type we cast the value to
             # its correct type (i.e. number, boolean, etc.).
             if is_multi:
-                casted_value = [self.cast_field_value(v, field) for v in value]
+                casted_value = [cast_field_value(v, field) for v in value]
             elif lookup == "isnull":
                 if not value or value not in self.BOOLEANS:
                     raise ParseError(
-                        detail=f"The isnull lookup can only be used with a boolean value ({", ".join(self.BOOLEANS)})."
+                        detail=f"The isnull lookup can only be used with a boolean value ({', '.join(self.BOOLEANS)})."
                     )
                 casted_value = value[0] in self.TRUE_VALUES
             else:
-                casted_value = self.cast_field_value(value[0], field)
+                casted_value = cast_field_value(value[0], field)
 
             if is_exclude:
                 # Strip the exclusion symbol from the key for Django's exclude method
-                exclude_key = (
-                    key[len(self.EXCLUDE_SYMBOL) :]
-                    if key.startswith(self.EXCLUDE_SYMBOL)
-                    else key
-                )
+                exclude_key = key[len(self.EXCLUDE_SYMBOL) :] if key.startswith(self.EXCLUDE_SYMBOL) else key
                 exclude_kwargs[exclude_key] = casted_value
             else:
                 filter_kwargs[key] = casted_value
 
         return filter_kwargs, exclude_kwargs
 
-    @staticmethod
-    def get_field_lookups(model_class):
-        """
-        Allow all supported lookups.
-        """
-        field_lookups = {}
-        for model_field in model_class._meta.get_fields():
-            lookup_list = model_field.get_lookups().keys()
-            field_lookups[model_field.name] = lookup_list
-        return field_lookups
-
     def cast_field_value(self, value: str, field):
-        value = value.strip().lower()
-
-        if isinstance(field, models.BooleanField):
-            if value in self.TRUE_VALUES:
-                return True
-            if value in self.FALSE_VALUES:
-                return False
-            if getattr(field, "null", False) and value in self.NULL_VALUES:
-                return None
-            else:
-                if getattr(field, "null", False):
-                    raise ParseError(
-                        detail=f"Nullable boolean fields expect a boolean or none lookup value ({", ".join(self.BOOLEANS + self.NULL_VALUES)})."
-                    )
-
-                raise ParseError(
-                    detail=f"Boolean fields expect a boolean lookup value ({", ".join(self.BOOLEANS)})."
-                )
-
-        if isinstance(field, models.IntegerField):
-            try:
-                return int(value)
-            except ValueError:
-                raise ParseError(detail=f"Invalid integer value: {value}")
-
-        if isinstance(field, models.DecimalField):
-            try:
-                return Decimal(value)
-            except (ValueError, InvalidOperation):
-                raise ParseError(detail=f"Invalid decimal value: {value}")
-
-        if isinstance(field, models.FloatField):
-            try:
-                return float(value)
-            except ValueError:
-                raise ParseError(detail=f"Invalid float value: {value}")
-
-        return value
+        """
+        Cast a string value to the appropriate type based on the field type.
+        This is a convenience method that calls the standalone cast_field_value function.
+        """
+        return cast_field_value(value, field)

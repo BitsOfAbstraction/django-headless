@@ -1,7 +1,8 @@
+import hmac
+
+from django.contrib.auth.models import User
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from django.contrib.auth.models import User
-import hmac
 
 from headless.settings import headless_settings
 
@@ -18,9 +19,7 @@ class SecretKeyAuthentication(BaseAuthentication):
             raise ValueError("HEADLESS.AUTH_SECRET_KEY must be configured")
 
     def authenticate(self, request):
-        secret_key_header = request.headers.get(
-            headless_settings.AUTH_SECRET_KEY_HEADER, None
-        )
+        secret_key_header = request.headers.get(headless_settings.AUTH_SECRET_KEY_HEADER, None)
 
         if not secret_key_header:
             return None

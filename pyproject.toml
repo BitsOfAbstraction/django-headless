@@ -1,34 +1,58 @@
 [project]
 name = "django-headless"
-version = "1.0.0-beta.6"
+version = "1.0.0-rc.1-1"
 description = "Automagically create a REST API for your Django models"
 authors = [
-    {name = "Leon van der Grient",email = "leon@dwarsbit.nl"}
+    { name = "Leon van der Grient", email = "leon@dwarsbit.nl" }
 ]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.12"
+homepage = "https://github.com/BitsOfAbstraction/django-headless"
+keywords = ["django", "rest", "api", "headless", "cms"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 
 [tool.poetry]
 packages = [{include = "headless"}]
 
 [tool.poetry.dependencies]
+Django = ">=5.0,<7.0"
+djangorestframework = ">=3.16,<4.0"
+"drf-flex-fields" = ">=1.0,<2.0"
 "rich" = ">=14"
-"drf-flex-fields" = "1.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "26.3.1"
 Django= "6.0.3"
-djangorestframework= "3.17.1"
+djangorestframework = "3.17.1"
 djangorestframework-stubs = "3.16.8"
 pytest = "9.0.2"
 "pytest-django" = "4.12.0"
 pytest-cov = "^7.1.0"
 
 [tool.poetry.scripts]
+# Testing scripts
 test = "scripts.test_wrapper:main_test"
 test-verbose = "scripts.test_wrapper:main_test_verbose"
 test-cov = "scripts.test_wrapper:main_test_cov"
+
+# Quality gate scripts - run tests before critical operations
+build = "scripts.test_wrapper:main_build"
+publish = "scripts.test_wrapper:main_publish"
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -1,14 +1,13 @@
-from typing import Type, Dict, Any
+from typing import Type, Any
 
 from django.db.models import Model
 from django.urls import path
-from rest_framework.viewsets import ModelViewSet
 
-from ..registry import ModelConfig, headless_registry
-from ..utils import log
-from .routers import rest_router, singleton_urls
-from .viewsets import SingletonViewSet
-from ..settings import headless_settings
+from headless.utils import log
+from .serializer import get_serializer
+from .viewset import get_view_set
+from ..routers import rest_router, singleton_urls
+from ...registry import ModelConfig, headless_registry
 
 
 class RestBuilder:
@@ -35,9 +34,7 @@ class RestBuilder:
 
         for model_config in self._models:
             # Validate model config has required fields
-            if not all(
-                key in model_config for key in ["model", "singleton", "search_fields"]
-            ):
+            if not all(key in model_config for key in ["model", "singleton", "search_fields"]):
                 log(
                     f":warning:  Invalid model config for {model_config.get('model', 'Unknown')}",
                 )
@@ -45,7 +42,7 @@ class RestBuilder:
 
             model_class = model_config["model"]
             singleton = model_config["singleton"]
-            view_set = self.get_view_set(model_config)
+            view_set = get_view_set(model_config, self._viewset_classes, self._serializer_classes)
             base_path = model_class._meta.label_lower
 
             if singleton:
@@ -64,9 +61,7 @@ class RestBuilder:
             else:
                 rest_router.register(base_path, view_set)
 
-        log(
-            f"   [cyan]•[/cyan] {len(rest_router.urls + singleton_urls)} routes registered"
-        )
+        log(f"   [cyan]•[/cyan] {len(rest_router.urls + singleton_urls)} routes registered")
         log(f"     [dim]{len(singleton_urls)} singleton routes[/dim]")
 
     def get_serializer(self, model_class: Type[Model]) -> Type[Any]:
@@ -79,20 +74,7 @@ class RestBuilder:
         Returns:
             A serializer class for the model
         """
-        model_name = model_class._meta.label
-
-        # Return serializer class from cache if it exists
-        if model_name in self._serializer_classes:
-            return self._serializer_classes[model_name]
-
-        class Serializer(headless_settings.DEFAULT_SERIALIZER_CLASS):
-            class Meta:
-                model = model_class
-                fields = "__all__"
-
-        self._serializer_classes[model_name] = Serializer
-
-        return Serializer
+        return get_serializer(model_class, self._serializer_classes)
 
     def get_view_set(self, model_config: ModelConfig) -> Type[Any]:
         """
@@ -104,31 +86,4 @@ class RestBuilder:
         Returns:
             A viewset class configured for the model
         """
-        model_class = model_config["model"]
-        model_name = model_class._meta.label
-
-        # Return cached viewset if it exists
-        if model_name in self._viewset_classes:
-            return self._viewset_classes[model_name]
-
-        singleton = model_config["singleton"]
-        serializer = self.get_serializer(model_class)
-
-        if singleton:
-
-            class ViewSet(SingletonViewSet):
-                queryset = model_class.objects.none()
-                serializer_class = serializer
-
-                def get_queryset(self):
-                    return model_class.objects.first()
-
-        else:
-
-            class ViewSet(ModelViewSet):
-                queryset = model_class.objects.all()
-                serializer_class = serializer
-                search_fields = model_config["search_fields"]
-
-        self._viewset_classes[model_name] = ViewSet
-        return ViewSet
+        return get_view_set(model_config, self._viewset_classes, self._serializer_classes)

@@ -1,11 +1,12 @@
 __title__ = "Django Headless"
-__version__ = "1.0.0-beta.5"
+__version__ = "1.0.0-rc.1"
 __author__ = "Leon van der Grient"
 __license__ = "MIT"
 
 from typing import Type
 
 from django.db import models
+
 from .registry import headless_registry
 
 # Version synonym
@@ -47,6 +48,4 @@ def expose_model(model_class: Type[models.Model], singleton=False, search_fields
         expose_model(MyModel, singleton=False, search_fields=['name', 'description'])
     """
 
-    headless_registry.register(
-        model_class, singleton=singleton, search_fields=search_fields
-    )
+    headless_registry.register(model_class, singleton=singleton, search_fields=search_fields)

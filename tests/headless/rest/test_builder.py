@@ -67,9 +67,7 @@ class RestBuilderTests(SimpleTestCase):
 
             # Should create a new serializer class
             self.assertIn("test.BuilderTestModel", builder._serializer_classes)
-            self.assertEqual(
-                serializer, builder._serializer_classes["test.BuilderTestModel"]
-            )
+            self.assertEqual(serializer, builder._serializer_classes["test.BuilderTestModel"])
 
     def test_get_serializer_returns_cached_serializer(self):
         """Test that get_serializer returns cached serializer"""
@@ -126,9 +124,7 @@ class RestBuilderTests(SimpleTestCase):
 
             # Should create a SingletonViewSet
             self.assertIn("test.BuilderSingletonModel", builder._viewset_classes)
-            self.assertEqual(
-                viewset, builder._viewset_classes["test.BuilderSingletonModel"]
-            )
+            self.assertEqual(viewset, builder._viewset_classes["test.BuilderSingletonModel"])
 
     def test_get_view_set_returns_cached_viewset(self):
         """Test that get_view_set returns cached viewset"""
@@ -158,23 +154,20 @@ class RestBuilderTests(SimpleTestCase):
         builder = RestBuilder()
 
         # Register a model with invalid config (missing required fields)
-        invalid_config = {
-            "model": BuilderTestModel
-        }  # Missing 'singleton' and 'search_fields'
+        invalid_config = {"model": BuilderTestModel}  # Missing 'singleton' and 'search_fields'
         headless_registry._models["test.buildertestmodel"] = invalid_config
 
         # Create builder after registering invalid model
         builder = RestBuilder()
 
         # Mock log to capture warning messages
-        with patch("headless.rest.builder.log") as mock_log:
+        with patch("headless.rest.builder.base.log") as mock_log:
             builder.build()
 
             # Should log a warning about invalid config
             # Check that any warning log was called (exact format may vary)
             warning_found = any(
-                ":warning:" in str(call) and "Invalid model config" in str(call)
-                for call in mock_log.call_args_list
+                ":warning:" in str(call) and "Invalid model config" in str(call) for call in mock_log.call_args_list
             )
             self.assertTrue(warning_found, "Warning log for invalid config not found")
 
@@ -280,7 +273,7 @@ class RestBuilderTests(SimpleTestCase):
             mock_serializer_class = MagicMock()
             mock_settings.DEFAULT_SERIALIZER_CLASS = mock_serializer_class
 
-            with patch("headless.rest.builder.log") as mock_log:
+            with patch("headless.rest.builder.base.log") as mock_log:
                 builder.build()
 
                 # Should log the correct route count
@@ -291,12 +284,8 @@ class RestBuilderTests(SimpleTestCase):
 
                 # Check that the log was called with the correct format (exact count may vary)
                 log_calls = [str(call) for call in mock_log.call_args_list]
-                route_log_found = any(
-                    "routes registered" in str(call) for call in mock_log.call_args_list
-                )
-                singleton_log_found = any(
-                    "singleton routes" in str(call) for call in mock_log.call_args_list
-                )
+                route_log_found = any("routes registered" in str(call) for call in mock_log.call_args_list)
+                singleton_log_found = any("singleton routes" in str(call) for call in mock_log.call_args_list)
 
                 self.assertTrue(route_log_found, "Route count log not found")
                 self.assertTrue(singleton_log_found, "Singleton routes log not found")

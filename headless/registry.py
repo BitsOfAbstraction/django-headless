@@ -1,6 +1,5 @@
 from typing import Type, Dict, Optional, TypedDict, List
 
-from django.apps import apps
 from django.db import models
 
 
@@ -18,9 +17,7 @@ class HeadlessRegistry:
     def __init__(self):
         self._models: Dict[str, ModelConfig] = {}
 
-    def register(
-        self, model_class: Type[models.Model], singleton=False, search_fields=None
-    ):
+    def register(self, model_class: Type[models.Model], singleton=False, search_fields=None):
         """
         Register a model in the registry.
 
@@ -69,9 +66,7 @@ class HeadlessRegistry:
         searchable_fields = []
 
         for field in model._meta.fields:
-            if isinstance(field, models.CharField) and not getattr(
-                field, "choices", None
-            ):
+            if isinstance(field, models.CharField) and not getattr(field, "choices", None):
                 searchable_fields.append(field.name)
 
         return searchable_fields

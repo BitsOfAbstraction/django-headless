@@ -1,10 +1,10 @@
 from rest_framework.exceptions import NotFound
-from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import (
     CreateModelMixin,
     UpdateModelMixin,
     RetrieveModelMixin,
 )
+from rest_framework.viewsets import GenericViewSet
 
 
 class SingletonViewSet(
