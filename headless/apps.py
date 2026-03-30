@@ -8,6 +8,8 @@ from .utils import (
     is_secret_key_auth_used,
     is_secret_key_auth_configured,
     configured_auth_classes,
+    get_latest_version,
+    normalize_version,
 )
 
 
@@ -17,7 +19,6 @@ class DjangoHeadlessConfig(AppConfig):
 
     def ready(self):
         from headless.settings import headless_settings
-        from django.conf import settings
         from .registry import headless_registry
 
         if not is_runserver():
@@ -26,7 +27,22 @@ class DjangoHeadlessConfig(AppConfig):
         log("")
         log("[bold magenta]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold magenta]")
         log("[bold cyan]Django Headless[/bold cyan]")
-        log(f"[bold]Version {VERSION}[/bold]")
+
+        # Check for a newer version
+        latest_version = get_latest_version()
+        if latest_version:
+            latest_version = normalize_version(latest_version)
+            current_version = normalize_version(VERSION)
+            if latest_version != current_version:
+                log(f"[yellow]⚠️  New version available[/yellow]")
+                log(
+                    f"Current: [bold]{current_version}[/bold] → Latest: {latest_version}"
+                )
+            else:
+                log(f"[bold]Version {current_version}[/bold]")
+        else:
+            log(f"[bold]Version {VERSION}[/bold]")
+
         log("[bold magenta]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold magenta]")
         log(
             f":gift:  Found [bold green]{len(headless_registry)}[/bold green] exposed models:"
